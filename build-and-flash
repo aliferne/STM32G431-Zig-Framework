@@ -1,0 +1,52 @@
+#!/bin/env bash
+if [[ ! pwd > /dev/null  ]]; then
+    echo "如果没有 \`pwd\`，安装 \`pwd\` 或者修改脚本中的 \`PROJ_ROOT\`"
+    exit
+fi
+
+# 项目相关定义
+PROJ_ROOT="$(pwd)"
+EXEC_NAME="zig-test"
+BIN_ROOT="$PROJ_ROOT/zig-out/bin"
+EXEC_PATH="$BIN_ROOT/$EXEC_NAME.elf"
+INTERFACE_CFG="interface/cmsis-dap.cfg"
+TARGET_CFG="target/stm32g4x.cfg"
+
+# 随便传什么进来都表示要用 make 构建的文件烧录
+if [[ $# -gt 0 ]]; then
+    /usr/bin/openocd \
+    -s "$PROJ_ROOT" \
+    -f "$INTERFACE_CFG" \
+    -f "$TARGET_CFG" \
+    -c "program \"$PROJ_ROOT/HAL_Driver/build-make/$EXEC_NAME.elf\" " \
+    -c "reset run" \
+    -c "exit"
+    exit
+fi
+
+echo "[INFO] Building ELF in $EXEC_PATH..."
+zig build
+echo ""
+
+arm-none-eabi-objcopy \
+"-O" \
+"binary" \
+"-S" \
+"$BIN_ROOT/$EXEC_NAME.elf" \
+"$BIN_ROOT/$EXEC_NAME.bin" 
+
+arm-none-eabi-objcopy \
+"-O" \
+"ihex" \
+"$BIN_ROOT/$EXEC_NAME.elf" \
+"$BIN_ROOT/$EXEC_NAME.hex" 
+
+echo "[INFO] Start flashing..."
+/usr/bin/openocd \
+    -s "$PROJ_ROOT" \
+    -f "$INTERFACE_CFG" \
+    -f "$TARGET_CFG" \
+    -c "program \"$EXEC_PATH\" verify " \
+    -c "reset run" \
+    -c "exit"
+echo "[INFO] All Done!"
