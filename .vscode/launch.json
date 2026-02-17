@@ -1,0 +1,71 @@
+{
+    // 使用 IntelliSense 了解相关属性。 
+    // 悬停以查看现有属性的描述。
+    // 欲了解更多信息，请访问: https://go.microsoft.com/fwlink/?linkid=830387
+    "version": "0.2.0",
+    "configurations": [
+        {
+            "cwd": "${workspaceRoot}",
+            "executable": "${cwd}/zig-out/bin/zig-test.elf",
+            "name": "[DEBUG] zig ver",
+            "request": "launch",
+            "type": "cortex-debug",
+            "servertype": "openocd",
+            "configFiles": [
+                "interface/cmsis-dap.cfg",
+                "target/stm32g4x.cfg"
+            ],
+            "searchDir": [],
+            "runToEntryPoint": "main",
+            "showDevDebugOutput": "none",
+            "liveWatch": { // Cortex-Debug 的动态监视功能，同 Keil 的全局监视
+                "enabled": true,
+                "samplesPerSecond": 4
+            },
+            // 看 Periphial （外设） 值
+            "svdPath": "${cwd}/.eide/STM32G431.svd", // 获取设备包
+        },
+        {
+            "cwd": "${workspaceRoot}",
+            "executable": "${cwd}/build/zig-test/zig-test.elf",
+            "name": "[DEBUG] arm-gcc (EIDE) ver",
+            "request": "launch",
+            "type": "cortex-debug",
+            "servertype": "openocd",
+            "configFiles": [
+                "interface/cmsis-dap.cfg",
+                "target/stm32g4x.cfg"
+            ],
+            "searchDir": [],
+            "runToEntryPoint": "main",
+            "showDevDebugOutput": "none",
+            "liveWatch": { // Cortex-Debug 的动态监视功能，同 Keil 的全局监视
+                "enabled": true,
+                "samplesPerSecond": 4
+            },
+            // 看 Periphial （外设） 值
+            "svdPath": "${cwd}/.eide/STM32G431.svd", // 获取设备包
+        },
+        {
+            "cwd": "${workspaceRoot}",
+            "executable": "${cwd}/HAL_Driver/build-make/zig-test.elf",
+            "name": "[DEBUG] arm-gcc (Makefile) ver",
+            "request": "launch",
+            "type": "cortex-debug",
+            "servertype": "openocd",
+            "configFiles": [
+                "interface/cmsis-dap.cfg",
+                "target/stm32g4x.cfg"
+            ],
+            "searchDir": [],
+            "runToEntryPoint": "main",
+            "showDevDebugOutput": "none",
+            "liveWatch": { // Cortex-Debug 的动态监视功能，同 Keil 的全局监视
+                "enabled": true,
+                "samplesPerSecond": 4
+            },
+            // 看 Periphial （外设） 值
+            "svdPath": "${cwd}/.eide/STM32G431.svd", // 获取设备包
+        },
+    ]
+}

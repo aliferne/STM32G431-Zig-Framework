@@ -1,5 +1,4 @@
 # dot files
-/.vscode/launch.json
 /.settings
 /.eide/log
 /.eide.usr.ctx.json
@@ -13,3 +12,10 @@
 # eide template
 *.ept
 *.eide-template
+
+# zig build
+.zig-cache
+zig-out
+
+# build-make
+HAL_Driver/build-make
