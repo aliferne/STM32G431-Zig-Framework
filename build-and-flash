@@ -46,7 +46,7 @@ echo "[INFO] Start flashing..."
     -s "$PROJ_ROOT" \
     -f "$INTERFACE_CFG" \
     -f "$TARGET_CFG" \
-    -c "program \"$EXEC_PATH\" verify " \
+    -c "program \"$EXEC_PATH\" " \
     -c "reset run" \
     -c "exit"
 echo "[INFO] All Done!"
