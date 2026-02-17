@@ -46,26 +46,5 @@
             // 看 Periphial （外设） 值
             "svdPath": "${cwd}/.eide/STM32G431.svd", // 获取设备包
         },
-        {
-            "cwd": "${workspaceRoot}",
-            "executable": "${cwd}/HAL_Driver/build-make/zig-test.elf",
-            "name": "[DEBUG] arm-gcc (Makefile) ver",
-            "request": "launch",
-            "type": "cortex-debug",
-            "servertype": "openocd",
-            "configFiles": [
-                "interface/cmsis-dap.cfg",
-                "target/stm32g4x.cfg"
-            ],
-            "searchDir": [],
-            "runToEntryPoint": "main",
-            "showDevDebugOutput": "none",
-            "liveWatch": { // Cortex-Debug 的动态监视功能，同 Keil 的全局监视
-                "enabled": true,
-                "samplesPerSecond": 4
-            },
-            // 看 Periphial （外设） 值
-            "svdPath": "${cwd}/.eide/STM32G431.svd", // 获取设备包
-        },
     ]
 }
