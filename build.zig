@@ -151,7 +151,7 @@ pub fn build(b: *std.Build) void {
     exe.link_function_sections = true;
 
     // -TSTM32G431xx_FLASH.ld
-    exe.setLinkerScript(b.path(b.fmt("{s}/STM32G431XX_FLASH.ld", .{STM32_Driver_Path})));
+    exe.setLinkerScript(b.path("STM32G431XX_FLASH.ld"));
     // 生成 elf 文件
     b.installArtifact(exe);
 }

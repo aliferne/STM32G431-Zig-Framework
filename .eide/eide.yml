@@ -205,7 +205,7 @@ targets:
             LIB_FLAGS: -lm
             output-format: elf
             remove-unused-input-sections: true
-        scatterFilePath: HAL_Driver/STM32G431XX_FLASH.ld
+        scatterFilePath: STM32G431XX_FLASH.ld
         storageLayout:
           RAM: []
           ROM: []
