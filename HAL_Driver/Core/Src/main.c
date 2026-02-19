@@ -33,7 +33,11 @@
 
 /* Private define ------------------------------------------------------------*/
 /* USER CODE BEGIN PD */
-
+/// NOTE: 这两个是互斥的
+/// NOTE: BUILD_BY_EIDE 默认表示用 EIDE 构建，点灯代码在这个文件里
+/// NOTE: BUILD_BY_ZIG 表示用 zig 构建，点灯代码在 src/main.zig 里
+// #define BUILD_BY_EIDE
+#define BUILD_BY_ZIG
 /* USER CODE END PD */
 
 /* Private macro -------------------------------------------------------------*/
