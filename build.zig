@@ -52,45 +52,7 @@ pub fn build(b: *std.Build) void {
     // 汇编启动文件
     mod.addAssemblyFile(b.path(b.fmt("{s}/startup_stm32g431xx.s", .{STM32_Driver_Path})));
     // 源文件
-    mod.addCSourceFiles(.{
-        .files = &.{
-            b.fmt("{s}/Core/Src/main.c", .{STM32_Driver_Path}),
-            b.fmt("{s}/Core/Src/usart.c", .{STM32_Driver_Path}),
-            b.fmt("{s}/Core/Src/gpio.c", .{STM32_Driver_Path}),
-            b.fmt("{s}/Core/Src/stm32g4xx_it.c", .{STM32_Driver_Path}),
-            b.fmt("{s}/Core/Src/stm32g4xx_hal_msp.c", .{STM32_Driver_Path}),
-            b.fmt("{s}/Core/Src/system_stm32g4xx.c", .{STM32_Driver_Path}),
-            b.fmt("{s}/Core/Src/sysmem.c", .{STM32_Driver_Path}),
-            b.fmt("{s}/Core/Src/syscalls.c", .{STM32_Driver_Path}),
-            // HAL Drivers
-            b.fmt("{s}/Drivers/STM32G4xx_HAL_Driver/Src/stm32g4xx_hal.c", .{STM32_Driver_Path}),
-
-            b.fmt("{s}/Drivers/STM32G4xx_HAL_Driver/Src/stm32g4xx_hal_pwr.c", .{STM32_Driver_Path}),
-            b.fmt("{s}/Drivers/STM32G4xx_HAL_Driver/Src/stm32g4xx_hal_pwr_ex.c", .{STM32_Driver_Path}),
-
-            b.fmt("{s}/Drivers/STM32G4xx_HAL_Driver/Src/stm32g4xx_hal_dma.c", .{STM32_Driver_Path}),
-            b.fmt("{s}/Drivers/STM32G4xx_HAL_Driver/Src/stm32g4xx_hal_dma_ex.c", .{STM32_Driver_Path}),
-
-            b.fmt("{s}/Drivers/STM32G4xx_HAL_Driver/Src/stm32g4xx_hal_gpio.c", .{STM32_Driver_Path}),
-
-            b.fmt("{s}/Drivers/STM32G4xx_HAL_Driver/Src/stm32g4xx_hal_exti.c", .{STM32_Driver_Path}),
-
-            b.fmt("{s}/Drivers/STM32G4xx_HAL_Driver/Src/stm32g4xx_hal_cortex.c", .{STM32_Driver_Path}),
-
-            b.fmt("{s}/Drivers/STM32G4xx_HAL_Driver/Src/stm32g4xx_hal_rcc.c", .{STM32_Driver_Path}),
-            b.fmt("{s}/Drivers/STM32G4xx_HAL_Driver/Src/stm32g4xx_hal_rcc_ex.c", .{STM32_Driver_Path}),
-
-            b.fmt("{s}/Drivers/STM32G4xx_HAL_Driver/Src/stm32g4xx_hal_flash.c", .{STM32_Driver_Path}),
-            b.fmt("{s}/Drivers/STM32G4xx_HAL_Driver/Src/stm32g4xx_hal_flash_ex.c", .{STM32_Driver_Path}),
-            b.fmt("{s}/Drivers/STM32G4xx_HAL_Driver/Src/stm32g4xx_hal_flash_ramfunc.c", .{STM32_Driver_Path}),
-
-            b.fmt("{s}/Drivers/STM32G4xx_HAL_Driver/Src/stm32g4xx_hal_uart.c", .{STM32_Driver_Path}),
-            b.fmt("{s}/Drivers/STM32G4xx_HAL_Driver/Src/stm32g4xx_hal_uart_ex.c", .{STM32_Driver_Path}),
-
-            b.fmt("{s}/Drivers/STM32G4xx_HAL_Driver/Src/stm32g4xx_hal_tim.c", .{STM32_Driver_Path}),
-            b.fmt("{s}/Drivers/STM32G4xx_HAL_Driver/Src/stm32g4xx_hal_tim_ex.c", .{STM32_Driver_Path}),
-        },
-    });
+    addSources(b, mod, STM32_Driver_Path);
 
     addCMacros(mod);
     // 加入链接选项
@@ -117,10 +79,71 @@ pub fn build(b: *std.Build) void {
         "exit",
     });
     const flash_step = b.step("flash", "Flash the code to the target");
-    flash_run.step.dependOn(&exe.step);
+    // 此处借助 b.getInstallStep 确保已经生成了 zig-test.elf 之后，才执行烧录
+    // installArtifact 会把安装步骤添加到 getInstallStep 中
+    flash_run.step.dependOn(b.getInstallStep());
     flash_step.dependOn(&flash_run.step);
 }
 
+/// add Include Paths
+fn addIncludes(b: *std.Build, mod: *Module, STM32_Driver_Path: []const u8) void {
+    // 这里就是加入 STM32 HAL 库的头文件
+    // 需要强制编译时确认，否则会在 for 循环处报错（提示未确认的编译时值）
+    const includePaths = comptime [_][]const u8{
+        "Core/Inc",
+        "Drivers/CMSIS/Include",
+        "Drivers/STM32G4xx_HAL_Driver/Inc",
+        "Drivers/STM32G4xx_HAL_Driver/Inc/Legacy",
+        "Drivers/CMSIS/Device/ST/STM32G4xx/Include",
+    };
+
+    // 使用这种方式可以避免构造一大堆 {s}/
+    for (includePaths) |path| {
+        mod.addIncludePath(b.path(b.fmt("{s}/{s}", .{ STM32_Driver_Path, path })));
+    }
+}
+
+/// add source files
+fn addSources(b: *std.Build, mod: *Module, STM32_Driver_Path: []const u8) void {
+    // 这里就是加入 STM32 HAL 库的源文件
+    const sourceFiles = comptime [_][]const u8{
+        // Core/Src
+        "Core/Src/main.c",
+        "Core/Src/usart.c",
+        "Core/Src/gpio.c",
+        "Core/Src/stm32g4xx_it.c",
+        "Core/Src/stm32g4xx_hal_msp.c",
+        "Core/Src/system_stm32g4xx.c",
+        "Core/Src/sysmem.c",
+        "Core/Src/syscalls.c",
+
+        // HAL Drivers
+        "Drivers/STM32G4xx_HAL_Driver/Src/stm32g4xx_hal.c",
+        "Drivers/STM32G4xx_HAL_Driver/Src/stm32g4xx_hal_pwr.c",
+        "Drivers/STM32G4xx_HAL_Driver/Src/stm32g4xx_hal_pwr_ex.c",
+        "Drivers/STM32G4xx_HAL_Driver/Src/stm32g4xx_hal_dma.c",
+        "Drivers/STM32G4xx_HAL_Driver/Src/stm32g4xx_hal_dma_ex.c",
+        "Drivers/STM32G4xx_HAL_Driver/Src/stm32g4xx_hal_gpio.c",
+        "Drivers/STM32G4xx_HAL_Driver/Src/stm32g4xx_hal_exti.c",
+        "Drivers/STM32G4xx_HAL_Driver/Src/stm32g4xx_hal_cortex.c",
+        "Drivers/STM32G4xx_HAL_Driver/Src/stm32g4xx_hal_rcc.c",
+        "Drivers/STM32G4xx_HAL_Driver/Src/stm32g4xx_hal_rcc_ex.c",
+        "Drivers/STM32G4xx_HAL_Driver/Src/stm32g4xx_hal_flash.c",
+        "Drivers/STM32G4xx_HAL_Driver/Src/stm32g4xx_hal_flash_ex.c",
+        "Drivers/STM32G4xx_HAL_Driver/Src/stm32g4xx_hal_flash_ramfunc.c",
+        "Drivers/STM32G4xx_HAL_Driver/Src/stm32g4xx_hal_uart.c",
+        "Drivers/STM32G4xx_HAL_Driver/Src/stm32g4xx_hal_uart_ex.c",
+        "Drivers/STM32G4xx_HAL_Driver/Src/stm32g4xx_hal_tim.c",
+        "Drivers/STM32G4xx_HAL_Driver/Src/stm32g4xx_hal_tim_ex.c",
+    };
+    var formattedPaths: [sourceFiles.len][]const u8 = undefined;
+    for (sourceFiles, 0..) |path, i| {
+        formattedPaths[i] = b.fmt("{s}/{s}", .{ STM32_Driver_Path, path });
+    }
+    mod.addCSourceFiles(.{ .files = &formattedPaths });
+}
+
+/// add C Run-Time files
 fn addCRTFiles(b: *std.Build, mod: *Module) void {
     const arm_gcc_pgm = if (b.option([]const u8, "armgcc", "Path to arm-none-eabi-gcc compiler")) |arm_gcc_path|
         b.findProgram(&.{"arm-none-eabi-gcc"}, &.{arm_gcc_path}) catch {
@@ -163,41 +186,6 @@ fn addCRTFiles(b: *std.Build, mod: *Module) void {
     mod.addObjectFile(.{ .cwd_relative = b.fmt("{s}/crtbegin.o", .{gcc_arm_lib_path1}) });
     mod.addObjectFile(.{ .cwd_relative = b.fmt("{s}/crtend.o", .{gcc_arm_lib_path1}) });
     mod.addObjectFile(.{ .cwd_relative = b.fmt("{s}/crtn.o", .{gcc_arm_lib_path1}) });
-}
-
-/// add Include Paths
-fn addIncludes(b: *std.Build, mod: *Module, STM32_Driver_Path: []const u8) void {
-    // 这里就是加入 STM32 HAL 库的头文件
-    // 需要强制编译时确认，否则会在 for 循环处报错（提示未确认的编译时值）
-    const includePaths = comptime [_][]const u8{
-        "Core/Inc",
-        "Drivers/CMSIS/Include",
-        "Drivers/STM32G4xx_HAL_Driver/Inc",
-        "Drivers/STM32G4xx_HAL_Driver/Inc/Legacy",
-        "Drivers/CMSIS/Device/ST/STM32G4xx/Include",
-    };
-    // 使用这种方式可以避免构造一大堆 {s}/
-    for (includePaths) |path| {
-        mod.addIncludePath(b.path(b.fmt("{s}/{s}", .{STM32_Driver_Path, path})));
-    }
-}
-
-fn addSources(b: *std.Build, mod: *Module, STM32_Driver_Path: []const u8) void {
-    // 这里就是加入 STM32 HAL 库的源文件
-    const sourceFiles = comptime [_][]const u8{
-        // TODO: Core/Src 下面的直接扫描文件吧，来得直接一点
-        "Core/Src/system_stm32g4xx.c",
-        "Core/Src/stm32g4xx_hal.c",
-        "Core/Src/stm32g4xx_hal_cortex.c",
-    };
-
-    _ = b;
-    _ = mod;
-    _ = STM32_Driver_Path;
-    _ = sourceFiles;
-    // for (sourceFiles) |path| {
-    //     // TODO:
-    // }
 }
 
 /// add C Macros (-Dxxx)
