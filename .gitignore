@@ -17,5 +17,13 @@
 .zig-cache
 zig-out
 
-# build-make
+# build
+build
 HAL_Driver/build-make
+HAL_Driver/build/
+
+# caches
+.cache
+
+# bear generated (for syntax support in Zed)
+compile_commands.json

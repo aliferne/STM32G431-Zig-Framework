@@ -1,8 +1,6 @@
-const hal = @cImport({
-    @cDefine("STM32G431xx", {});
-    @cDefine("USE_HAL_DRIVER", {});
-    @cInclude("main.h");
-});
+const cImport = @import("cImport.zig");
+const hal = cImport.hal;
+const lcd = @import("lcd.zig");
 
 pub fn main() void {
     while (true) {

@@ -20,8 +20,7 @@ pub fn build(b: *std.Build) void {
     });
 
     const exec_name = "zig-test";
-    // 优化，有四个等级可选，这里默认
-    const optimize = b.standardOptimizeOption(.{});
+    const optimize = b.standardOptimizeOption(.{ .preferred_optimize_mode = .Debug });
 
     // 加入模块
     const mod = b.addModule(exec_name, .{

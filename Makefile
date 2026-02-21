@@ -36,33 +36,33 @@ BUILD_DIR = build
 ######################################
 # C sources
 C_SOURCES =  \
-Core/Src/main.c \
-Core/Src/gpio.c \
-Core/Src/usart.c \
-Core/Src/stm32g4xx_it.c \
-Core/Src/stm32g4xx_hal_msp.c \
-Drivers/STM32G4xx_HAL_Driver/Src/stm32g4xx_hal_pwr_ex.c \
-Drivers/STM32G4xx_HAL_Driver/Src/stm32g4xx_hal_uart.c \
-Drivers/STM32G4xx_HAL_Driver/Src/stm32g4xx_hal_uart_ex.c \
-Drivers/STM32G4xx_HAL_Driver/Src/stm32g4xx_hal.c \
-Drivers/STM32G4xx_HAL_Driver/Src/stm32g4xx_hal_rcc.c \
-Drivers/STM32G4xx_HAL_Driver/Src/stm32g4xx_hal_rcc_ex.c \
-Drivers/STM32G4xx_HAL_Driver/Src/stm32g4xx_hal_flash.c \
-Drivers/STM32G4xx_HAL_Driver/Src/stm32g4xx_hal_flash_ex.c \
-Drivers/STM32G4xx_HAL_Driver/Src/stm32g4xx_hal_flash_ramfunc.c \
-Drivers/STM32G4xx_HAL_Driver/Src/stm32g4xx_hal_gpio.c \
-Drivers/STM32G4xx_HAL_Driver/Src/stm32g4xx_hal_exti.c \
-Drivers/STM32G4xx_HAL_Driver/Src/stm32g4xx_hal_dma.c \
-Drivers/STM32G4xx_HAL_Driver/Src/stm32g4xx_hal_dma_ex.c \
-Drivers/STM32G4xx_HAL_Driver/Src/stm32g4xx_hal_pwr.c \
-Drivers/STM32G4xx_HAL_Driver/Src/stm32g4xx_hal_cortex.c \
-Core/Src/system_stm32g4xx.c \
-Core/Src/sysmem.c \
-Core/Src/syscalls.c  
+HAL_Driver/Core/Src/main.c \
+HAL_Driver/Core/Src/gpio.c \
+HAL_Driver/Core/Src/usart.c \
+HAL_Driver/Core/Src/stm32g4xx_it.c \
+HAL_Driver/Core/Src/stm32g4xx_hal_msp.c \
+HAL_Driver/Drivers/STM32G4xx_HAL_Driver/Src/stm32g4xx_hal_pwr_ex.c \
+HAL_Driver/Drivers/STM32G4xx_HAL_Driver/Src/stm32g4xx_hal_uart.c \
+HAL_Driver/Drivers/STM32G4xx_HAL_Driver/Src/stm32g4xx_hal_uart_ex.c \
+HAL_Driver/Drivers/STM32G4xx_HAL_Driver/Src/stm32g4xx_hal.c \
+HAL_Driver/Drivers/STM32G4xx_HAL_Driver/Src/stm32g4xx_hal_rcc.c \
+HAL_Driver/Drivers/STM32G4xx_HAL_Driver/Src/stm32g4xx_hal_rcc_ex.c \
+HAL_Driver/Drivers/STM32G4xx_HAL_Driver/Src/stm32g4xx_hal_flash.c \
+HAL_Driver/Drivers/STM32G4xx_HAL_Driver/Src/stm32g4xx_hal_flash_ex.c \
+HAL_Driver/Drivers/STM32G4xx_HAL_Driver/Src/stm32g4xx_hal_flash_ramfunc.c \
+HAL_Driver/Drivers/STM32G4xx_HAL_Driver/Src/stm32g4xx_hal_gpio.c \
+HAL_Driver/Drivers/STM32G4xx_HAL_Driver/Src/stm32g4xx_hal_exti.c \
+HAL_Driver/Drivers/STM32G4xx_HAL_Driver/Src/stm32g4xx_hal_dma.c \
+HAL_Driver/Drivers/STM32G4xx_HAL_Driver/Src/stm32g4xx_hal_dma_ex.c \
+HAL_Driver/Drivers/STM32G4xx_HAL_Driver/Src/stm32g4xx_hal_pwr.c \
+HAL_Driver/Drivers/STM32G4xx_HAL_Driver/Src/stm32g4xx_hal_cortex.c \
+HAL_Driver/Core/Src/system_stm32g4xx.c \
+HAL_Driver/Core/Src/sysmem.c \
+HAL_Driver/Core/Src/syscalls.c  
 
 # ASM sources
 ASM_SOURCES =  \
-startup_stm32g431xx.s
+HAL_Driver/startup_stm32g431xx.s
 
 # ASMM sources
 ASMM_SOURCES = 
@@ -119,11 +119,11 @@ AS_INCLUDES =
 
 # C includes
 C_INCLUDES =  \
--ICore/Inc \
--IDrivers/STM32G4xx_HAL_Driver/Inc \
--IDrivers/STM32G4xx_HAL_Driver/Inc/Legacy \
--IDrivers/CMSIS/Device/ST/STM32G4xx/Include \
--IDrivers/CMSIS/Include
+-IHAL_Driver/Core/Inc \
+-IHAL_Driver/Drivers/STM32G4xx_HAL_Driver/Inc \
+-IHAL_Driver/Drivers/STM32G4xx_HAL_Driver/Inc/Legacy \
+-IHAL_Driver/Drivers/CMSIS/Device/ST/STM32G4xx/Include \
+-IHAL_Driver/Drivers/CMSIS/Include
 
 
 # compile gcc flags
