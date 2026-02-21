@@ -13,10 +13,19 @@ const Pin = struct {
     pin: u8,
 };
 
+/// error type for LCD operations
+const LCDError = error{
+    /// set cursor position error (smaller than 0 or larger than w, h)
+    invalidCursorPos,
+};
+
 pub const LCD = struct {
     /// self reference
     const Self = @This();
     pub const emptyLine = "                    ";
+    pub const height = 240;
+    pub const width = 320;
+    pub const totalPixels = height * width;
     pub const color = enum(u16) {
         black = 0x0000,
         white = 0xFFFF,
@@ -50,11 +59,11 @@ pub const LCD = struct {
     // WR = PB5
     // RD = PA8
     // DATA1 -> DATA16 => PC0~PC15(ALL)
-    const CS = Pin{ .port = hal.GPIOB, .pin = hal.GPIO_PIN_9 };
-    const RS = Pin{ .port = hal.GPIOB, .pin = hal.GPIO_PIN_8 };
-    const WR = Pin{ .port = hal.GPIOB, .pin = hal.GPIO_PIN_5 };
-    const RD = Pin{ .port = hal.GPIOA, .pin = hal.GPIO_PIN_8 };
-    const DATA = Pin{
+    CS: Pin = .{ .port = hal.GPIOB, .pin = hal.GPIO_PIN_9 },
+    RS: Pin = .{ .port = hal.GPIOB, .pin = hal.GPIO_PIN_8 },
+    WR: Pin = .{ .port = hal.GPIOB, .pin = hal.GPIO_PIN_5 },
+    RD: Pin = .{ .port = hal.GPIOA, .pin = hal.GPIO_PIN_8 },
+    DATA: Pin = .{
         .port = hal.GPIOC,
         .pin = hal.GPIO_PIN_All,
         // not sure if that works:
@@ -62,13 +71,12 @@ pub const LCD = struct {
         //     hal.GPIO_PIN_2 | hal.GPIO_PIN_3 |
         //     hal.GPIO_PIN_4 | hal.GPIO_PIN_5 |
         //     hal.GPIO_PIN_6 | hal.GPIO_PIN_7,
-    };
-    // instance variables
+    },
     _textColor: color = .black,
     _bgColor: color = .white,
 
-    pub fn init() void {
-        ctrlLinesConfig();
+    pub fn init(self: Self) void {
+        self.ctrlLinesConfig();
         // TODO:
     }
 
@@ -79,34 +87,70 @@ pub const LCD = struct {
     pub fn setBackgroundColor(self: Self, bgColor: color) void {
         self._backColor = bgColor;
     }
+
     pub fn clearLine(self: Self, lineNumber: line) void {
-        displayStringLine(lineNumber, emptyLine);
+        self.displayStringLine(lineNumber, emptyLine);
     }
 
-    pub fn clear(clearColor: color) void {}
-    pub fn setCursor(self: Self, x: u8, y: u8) void {
-        writeRegister();
+    /// clear the screen with a specified color
+    pub fn clear(self: Self, fillColor: color) void {
+        self.setCursor(0, 0);
+        self.prepareWriteGRAM();
+        for (0..totalPixels) |_| {
+            self.writeGRAM(fillColor);
+        }
     }
-    pub fn drawChar(x: u8, y: u8, char: u8) void {
-        hal.__HAL_RCC_GPIOA_CLK_ENABLE();
+
+    /// set the cursor position
+    pub fn setCursor(self: Self, x: u8, y: u16) !void {
+        // should be found when compiling
+        comptime if ((x >= self.width or y >= self.height)) {
+            return LCDError.invalidCursorPos;
+        };
+        self.writeRegister(32, x);
+        self.writeRegister(33, y);
     }
-    pub fn displayChar() void {}
-    pub fn displayStringLine() void {}
-    pub fn setDisplayWindow() void {}
-    pub fn windowModeDisable() void {}
-    pub fn drawLine() void {}
-    pub fn drawRect() void {}
-    pub fn drawCircle() void {}
-    pub fn drawMonoPict() void {}
-    pub fn writeBMP() void {}
-    pub fn drawBMP() void {}
-    pub fn drawPicture() void {}
-    pub fn writeRAM_Prepare() void {}
-    pub fn writeRAM() void {}
-    pub fn readRAM() void {}
-    pub fn powerOn() void {}
-    pub fn displayOn() void {}
-    pub fn displayOff() void {}
+
+    pub fn drawChar(self: Self, x: u8, y: u16, char: u8) void {}
+    pub fn displayChar(self: Self) void {}
+    pub fn displayStringLine(self: Self) void {}
+    pub fn setDisplayWindow(self: Self) void {}
+    pub fn windowModeDisable(self: Self) void {}
+    pub fn drawLine(self: Self) void {}
+    pub fn drawRect(self: Self) void {}
+    pub fn drawCircle(self: Self) void {}
+    pub fn drawMonoPict(self: Self) void {}
+    pub fn writeBMP(self: Self) void {}
+    pub fn drawBMP(self: Self) void {}
+    pub fn drawPicture(self: Self) void {}
+    pub fn powerOn(self: Self) void {}
+    pub fn displayOn(self: Self) void {}
+    pub fn displayOff(self: Self) void {}
+
+    /// prepare for writing GRAM
+    /// call this before call `writeGRAM`
+    pub fn prepareWriteGRAM(self: Self) void {
+        self.startTransmission();
+        self.sendRegisterAddr(34);
+        self.endTransmission();
+    }
+
+    pub fn writeGRAM(self: Self, pixelColor: color) void {
+        self.startTransmission();
+        self.writeBusData(@intFromEnum(pixelColor));
+        self.endTransmission();
+    }
+
+    pub fn readGRAM(self: Self) u16 {
+        var gramData: u16 = 0;
+
+        self.startTransmission();
+        self.sendRegisterAddr(34);
+        gramData = readBusData();
+        self.endTransmission();
+
+        return gramData;
+    }
 
     /// times: number of nops to execute
     inline fn nops(times: u8) void {
@@ -114,157 +158,109 @@ pub const LCD = struct {
     }
 
     /// configure bus (in mode)
-    fn busIn() void {
-        var gpioInitStruct: hal.GPIO_InitTypeDef = .{
-            .Pin = DATA.pin,
+    fn busIn(self: Self) void {
+        const gpioInitStruct: hal.GPIO_InitTypeDef = .{
+            .Pin = self.DATA.pin,
             .Mode = hal.GPIO_MODE_INPUT,
             .Speed = hal.GPIO_SPEED_FREQ_VERY_HIGH,
             .Pull = hal.GPIO_NOPULL,
         };
-        hal.GPIO_Init(DATA.port, &gpioInitStruct);
+        hal.HAL_GPIO_Init(self.DATA.port, &gpioInitStruct);
     }
 
     /// configure bus (out mode)
-    fn busOut() void {
-        var gpioInitStruct: hal.GPIO_InitTypeDef = .{
-            .Pin = DATA.pin,
+    fn busOut(self: Self) void {
+        const gpioInitStruct: hal.GPIO_InitTypeDef = .{
+            .Pin = self.DATA.pin,
             .Mode = hal.GPIO_MODE_OUTPUT_PP,
             .Speed = hal.GPIO_SPEED_FREQ_VERY_HIGH,
             .Pull = hal.GPIO_NOPULL,
         };
-        hal.GPIO_Init(DATA.port, &gpioInitStruct);
+        hal.HAL_GPIO_Init(self.DATA.port, &gpioInitStruct);
     }
 
     /// initialize control lines
-    fn ctrlLinesConfig() void {
+    fn ctrlLinesConfig(self: Self) void {
         // set RCC
         hal.RCC.*.AHB2ENR |= (hal.RCC_AHB2ENR_GPIOAEN | hal.RCC_AHB2ENR_GPIOBEN | hal.RCC_AHB2ENR_GPIOCEN);
         _ = hal.RCC.*.AHB2ENR & (hal.RCC_AHB2ENR_GPIOAEN | hal.RCC_AHB2ENR_GPIOBEN | hal.RCC_AHB2ENR_GPIOCEN);
 
         var gpioInitStruct: hal.GPIO_InitTypeDef = .{
-            .Pin = CS.pin,
+            .Pin = self.CS.pin,
             .Mode = hal.GPIO_MODE_OUTPUT_PP,
             .Speed = hal.GPIO_SPEED_FREQ_LOW,
             .Pull = hal.GPIO_NOPULL,
         };
-        hal.HAL_GPIO_Init(CS.port, &gpioInitStruct);
+        hal.HAL_GPIO_Init(self.CS.port, &gpioInitStruct);
 
-        gpioInitStruct.Pin = RS.pin;
-        hal.HAL_GPIO_Init(RS.port, &gpioInitStruct);
+        gpioInitStruct.Pin = self.RS.pin;
+        hal.HAL_GPIO_Init(self.RS.port, &gpioInitStruct);
 
-        gpioInitStruct.Pin = WR.pin;
-        hal.HAL_GPIO_Init(WR.port, &gpioInitStruct);
+        gpioInitStruct.Pin = self.WR.pin;
+        hal.HAL_GPIO_Init(self.WR.port, &gpioInitStruct);
 
-        gpioInitStruct.Pin = RD.pin;
-        hal.HAL_GPIO_Init(RD.port, &gpioInitStruct);
+        gpioInitStruct.Pin = self.RD.pin;
+        hal.HAL_GPIO_Init(self.RD.port, &gpioInitStruct);
     }
 
     /// write data to the specific register
-    fn writeRegister(addr: u8, data: u16) void {
-        startTransmission();
-        sendRegisterAddr(addr);
-        writeBusData(data);
-        endTransmission();
+    fn writeRegister(self: Self, addr: u8, data: u16) void {
+        self.startTransmission();
+        self.sendRegisterAddr(addr);
+        self.writeBusData(data);
+        self.endTransmission();
     }
     /// read data from the specific register
-    fn readRegister(addr: u8) u16 {
+    fn readRegister(self: Self, addr: u8) u16 {
         var readData: u16 = 0;
 
-        startTransmission();
-        sendRegisterAddr(addr);
+        self.startTransmission();
+        self.sendRegisterAddr(addr);
         readData = readBusData();
-        endTransmission();
+        self.endTransmission();
 
         return readData;
-    }
-
-    // TODO: 下面的可能还存在问题
-    pub fn writeRAMPrepared(self: *LCD) void {
-        startTransmission();
-
-        DATA.port.*.ODR = hal.R34;
-        WR.port.*.BRR |= WR.pin;
-        self.nops(3);
-        WR.port.*.BSRR |= WR.pin;
-        RS.port.*.BSRR |= RS.pin;
-        self.nops(3);
-
-        endTransmission();
-    }
-
-    pub fn LCD_WriteRAM(self: *LCD, RGB_Code: u16) void {
-        CS.port.*.BRR |= CS.pin;
-        RS.port.*.BSRR |= RS.pin;
-        WR.port.*.BSRR |= WR.pin;
-
-        writeBusData(RGB_Code);
-        self.nops(3);
-
-        endTransmission();
-    }
-
-    pub fn LCD_ReadRAM() u16 {
-        var temp: u16 = 0;
-
-        startTransmission();
-
-        DATA.port.*.ODR = hal.R34;
-        WR.port.*.BRR |= WR.pin;
-        nops(3);
-        WR.port.*.BSRR |= WR.pin;
-        RS.port.*.BSRR |= RS.pin;
-
-        temp = readBusData();
-
-        endTransmission();
-
-        return temp;
     }
 
     // I2C transfer protocol
     /// Start transmission by some initializations
-    fn startTransmission() void {
-        CS.port.*.BRR |= CS.pin; // chip select (set low)
-        RS.port.*.BRR |= RS.pin; // register select (set low)
-        WR.port.*.BSRR |= WR.pin; // write enable for writing addr (set high)
+    fn startTransmission(self: Self) void {
+        self.CS.port.*.BRR |= self.CS.pin; // chip select (set low)
+        self.RS.port.*.BRR |= self.RS.pin; // register select (set low)
+        self.WR.port.*.BSRR |= self.WR.pin; // write enable for writing addr (set high)
     }
 
     /// tell which register to write to
-    fn sendRegisterAddr(addr: u8) void {
-        writeBusData(@as(u16, addr));
-        // // tell which register to write to
-        // DATA.port.*.ODR = addr;
-        // // wait for write to complete
-        // WR.port.*.BRR |= WR.pin;
-        // nops(3);
-        // WR.port.*.BSRR |= WR.pin;
-        // RS.port.*.BSRR |= RS.pin;
+    fn sendRegisterAddr(self: Self, addr: u8) void {
+        self.writeBusData(@as(u16, addr));
     }
 
     /// read data from the bus
-    fn readBusData() u16 {
+    fn readBusData(self: Self) u16 {
         var readData: u16 = 0;
-        busIn();
-        RD.port.*.BRR |= RD.pin;
-        nops(3);
-        readData = DATA.port.*.IDR;
-        RD.port.*.BSRR |= RD.pin;
+        self.busIn();
 
-        busOut();
+        self.RD.port.*.BRR |= self.RD.pin;
+        nops(3);
+        readData = self.DATA.port.*.IDR;
+        self.RD.port.*.BSRR |= self.RD.pin;
+
+        self.busOut();
         return readData;
     }
 
     /// write data to the bus
-    fn writeBusData(data: u16) void {
-        DATA.port.*.ODR = data;
-        WR.port.*.BRR |= WR.pin;
+    fn writeBusData(self: Self, data: u16) void {
+        self.DATA.port.*.ODR = data;
+        self.WR.port.*.BRR |= self.WR.pin;
         nops(3);
-        WR.port.*.BSRR |= WR.pin;
-        RS.port.*.BSRR |= RS.pin;
+        self.WR.port.*.BSRR |= self.WR.pin;
+        self.RS.port.*.BSRR |= self.RS.pin;
+        nops(3);
     }
 
     /// End transmission by setting chip select high
-    fn endTransmission() void {
-        CS.port.*.BSRR |= CS.pin;
+    fn endTransmission(self: Self) void {
+        self.CS.port.*.BSRR |= self.CS.pin;
     }
 };
