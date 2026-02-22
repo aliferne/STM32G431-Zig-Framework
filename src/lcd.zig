@@ -7,22 +7,26 @@ const hal = @cImport({
     @cInclude("main.h");
 });
 
+const fonts = struct {
+    const raw: *const []u8 = @embedFile("fonts.bin");
+    // convert raw data to u16 array
+    pub const data: []const u16 =
+        @ptrCast(@alignCast(raw.ptr))[0..(raw.len / 2)];
+    pub const height = 24;
+    pub const width = 16;
+};
+
 /// pin should be assigned with port and pin number
 const Pin = struct {
     port: u8,
     pin: u8,
 };
 
-/// error type for LCD operations
-const LCDError = error{
-    /// set cursor position error (smaller than 0 or larger than w, h)
-    invalidCursorPos,
-};
-
 pub const LCD = struct {
     /// self reference
     const Self = @This();
     pub const emptyLine = "                    ";
+    pub const lineHeight = 24;
     pub const height = 240;
     pub const width = 320;
     pub const totalPixels = height * width;
@@ -39,16 +43,16 @@ pub const LCD = struct {
         yellow = 0xFFE0,
     };
     pub const line = enum(u8) {
-        line0 = 0,
-        line1 = 24,
-        line2 = 48,
-        line3 = 72,
-        line4 = 96,
-        line5 = 120,
-        line6 = 144,
-        line7 = 168,
-        line8 = 192,
-        line9 = 216,
+        line0 = 0 * lineHeight,
+        line1 = 1 * lineHeight,
+        line2 = 2 * lineHeight,
+        line3 = 3 * lineHeight,
+        line4 = 4 * lineHeight,
+        line5 = 5 * lineHeight,
+        line6 = 6 * lineHeight,
+        line7 = 7 * lineHeight,
+        line8 = 8 * lineHeight,
+        line9 = 9 * lineHeight,
     };
     pub const direction = enum(u8) {
         horizontal = 0,
@@ -102,17 +106,38 @@ pub const LCD = struct {
     }
 
     /// set the cursor position
-    pub fn setCursor(self: Self, x: u8, y: u16) !void {
+    pub fn setCursor(self: Self, x: u8, y: u16) void {
         // should be found when compiling
-        comptime if ((x >= self.width or y >= self.height)) {
-            return LCDError.invalidCursorPos;
-        };
+        if ((x > self.width) or (y > self.height)) {
+            @compileError("Invalid cursor position");
+        }
         self.writeRegister(32, x);
         self.writeRegister(33, y);
     }
 
-    pub fn drawChar(self: Self, x: u8, y: u16, char: u8) void {}
-    pub fn displayChar(self: Self) void {}
+    pub fn drawChar(self: Self, x: u8, y: u16, char: u16) void {
+        var xaddr: u8 = x;
+
+        self.setCursor(xaddr, y);
+        for (0..fonts.height) |idx| {
+            self.prepareWriteGRAM();
+            // if char[idx] == 1
+            // render it with text color (show text)
+            for (0..fonts.width) |i| {
+                if ((char[idx] & (1 << i)) == 0x00) {
+                    self.writeGRAM(self._bgColor);
+                } else {
+                    self.writeGRAM(self._textColor);
+                }
+            }
+            xaddr += 1;
+            self.setCursor(xaddr, y);
+        }
+    }
+
+    pub fn displayChar(self: Self lineNumber: line, char: u16) void {
+        self.drawChar(0, lineNumber, char);
+    }
     pub fn displayStringLine(self: Self) void {}
     pub fn setDisplayWindow(self: Self) void {}
     pub fn windowModeDisable(self: Self) void {}

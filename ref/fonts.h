@@ -13,7 +13,9 @@
 
 /* Exported types ------------------------------------------------------------*/
 /* ASCII Table: each character is 16 column (16dots large)
-   and 24 raw (24 dots high) */
+   and 24 raw (24 dots high)
+   96 Fonts here in total
+*/
 uc16 ASCII_Table[] =
     {
         /* Space ' ' */
