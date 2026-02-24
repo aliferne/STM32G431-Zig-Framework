@@ -3,5 +3,12 @@ const startup = @import("startup.zig");
 
 /// 作为接口给 Core/Src/main.c 调用
 export fn zigMain() callconv(.c) void {
-    main.main();
+    main.main() catch |err| {
+        const errMsg = @errorName(err);
+        @panic(errMsg);
+    };
+}
+
+export fn panic() callconv(.c) noreturn {
+    while (true) {}
 }

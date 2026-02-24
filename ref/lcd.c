@@ -1,16 +1,19 @@
 /*
-  程序说明: CT117E嵌入式竞赛板LCD驱动程序
-  软件环境: Keil uVision 4.10
-  硬件环境: CT117E嵌入式竞赛板
-  日    期: 2011-8-9
+    程序说明: CT117E嵌入式竞赛板LCD驱动程序
+    软件环境: Keil uVision 4.10
+    硬件环境: CT117E嵌入式竞赛板
+    日    期: 2011-8-9
 */
+
 #include "lcd.h"
 #include "fonts.h"
 // #include "systick.h"
+
 static vu16 TextColor = 0x0000, BackColor = 0xFFFF;
 vu16 dummy;
 
-#define __nop() (__NOP())
+#define __nop() __NOP()
+
 /*******************************************************************************
  * Function Name  : Delay_LCD
  * Description    : Inserts a delay time.
@@ -147,6 +150,7 @@ void REG_932X_Init(void)
  * Input          : None
  * Output         : None
  * Return         : None
+ * NOTE           : **go to call** Init Function in `bsp_ui.h` !
  *******************************************************************************/
 void LCD_Init(void)
 {
@@ -159,11 +163,11 @@ void LCD_Init(void)
     }
     else
     {
-        // 我的 LCD_Init 执行这里的，使用 ILI932X 的数据手册即可
         REG_932X_Init();
     }
     dummy = LCD_ReadReg(0);
-    HAL_Delay(100);
+
+    HAL_Delay(50);
 }
 /*******************************************************************************
  * Function Name  : LCD_SetTextColor
@@ -200,7 +204,7 @@ void LCD_SetBackColor(vu16 Color)
  *******************************************************************************/
 void LCD_ClearLine(u8 Line)
 {
-    LCD_DisplayStringLine(Line, "                    ");
+    LCD_DisplayStringLine(Line, EMPTY_LINE);
 }
 /*******************************************************************************
  * Function Name  : LCD_Clear
