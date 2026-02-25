@@ -487,16 +487,16 @@ pub const LCD = struct {
         self.setBackgroundColor(.yellow);
         try self.displayStringLine(.line9, EmptyLine);
 
-        hal.HAL_Delay(1000);
-
-        // 测试彩色图片
-        const pictureData = self.readPicture("output.bin");
-        try self.drawPicture(pictureData);
-        hal.HAL_Delay(1000);
-
-        // 测试单色位图
-        const monoData = self.readMonoPic("mono.bin", .black, .white);
-        try self.drawMonoPic(monoData);
+        // NOTE: 由于加入图片测试会导致二进制文件膨胀，故此处不再纳入测试范畴
+        // 在 Zig 下测试可用
+        // hal.HAL_Delay(1000);
+        // // 测试彩色图片
+        // const pictureData = self.readPicture("output.bin");
+        // try self.drawPicture(pictureData);
+        // hal.HAL_Delay(1000);
+        // // 测试单色位图
+        // const monoData = self.readMonoPic("mono.bin", .black, .white);
+        // try self.drawMonoPic(monoData);
     }
 
     /// times: number of nops to execute

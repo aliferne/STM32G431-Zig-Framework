@@ -46,6 +46,9 @@ pub fn build(b: *std.Build) void {
 
     const STM32_Driver_Path = "HAL_Driver";
 
+    // 构建 LCD 静态库
+    buildLcdLib(b, target, optimize);
+    // 添加 C 宏
     addCRTFiles(b, mod);
     addIncludes(b, mod, STM32_Driver_Path);
     // 汇编启动文件
@@ -195,6 +198,49 @@ fn addCMacros(mod: *Module) void {
     mod.addCMacro("STM32G431xx", "");
     // -DNEWLIB_PRINTF_FLOAT
     mod.addCMacro("NEWLIB_PRINTF_FLOAT", "");
+}
+
+/// build LCD static library - only compile lcd.zig and its dependencies
+/// 基本实现思路是单独抽出一个模块来，只添加 lcd.zig 所需要的依赖并将其作为 root 编译
+fn buildLcdLib(
+    b: *std.Build,
+    target: std.Build.ResolvedTarget,
+    optimize: std.builtin.OptimizeMode,
+) void {
+    // 创建专门的 LCD 模块，只包含 lcd.zig
+    const lcd_mod = b.addModule("lcd", .{
+        .root_source_file = b.path("src/lcd.zig"),
+        .target = target,
+        .optimize = optimize,
+        .link_libc = false,
+        .single_threaded = true,
+        .sanitize_c = .off,
+    });
+
+    // 添加必要的 include 路径
+    const includePaths = comptime [_][]const u8{
+        "HAL_Driver/Core/Inc",
+        "HAL_Driver/Drivers/CMSIS/Include",
+        "HAL_Driver/Drivers/STM32G4xx_HAL_Driver/Inc",
+        "HAL_Driver/Drivers/STM32G4xx_HAL_Driver/Inc/Legacy",
+        "HAL_Driver/Drivers/CMSIS/Device/ST/STM32G4xx/Include",
+    };
+    for (includePaths) |path| {
+        lcd_mod.addIncludePath(b.path(path));
+    }
+
+    // 添加必要的 C 宏
+    lcd_mod.addCMacro("USE_HAL_DRIVER", "");
+    lcd_mod.addCMacro("STM32G431xx", "");
+
+    // 创建 LCD 静态库
+    const lcdLib = b.addLibrary(.{
+        .linkage = .static,
+        .name = "lcd",
+        .root_module = lcd_mod,
+    });
+    
+    b.installArtifact(lcdLib);
 }
 
 /// add linker scripts and options for linker
